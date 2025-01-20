@@ -1,4 +1,15 @@
-#let mathblock(blocktitle: none, counter: none, numbering: "1.1", prefix: auto, titlix: title => [(#title)], suffix: none, bodyfmt: body => body, ..global_block_args) = {
+#let mathblock(
+  blocktitle: none,
+  counter: none,
+  numbering: "1.1",
+  prefix: auto,
+  titlix: title => [(#title)],
+  suffix: none,
+  supplement: auto,
+  bodyfmt: body => body,
+  introspectable: false,
+  ..global-block-args,
+) = {
   // check if blocktitle was provided
   if blocktitle == none {
     panic("You have created a `mathblock` without a `blocktitle`. Please provide a `blocktitle` like \"Theorem\" or \"Lemma\" or \"Proof\".")
@@ -9,8 +20,13 @@
     if counter == none {
       prefix = [*#blocktitle.*]
     } else {
-      prefix = (counter) => [*#blocktitle #counter.*]
+      prefix = counter => [*#blocktitle #counter.*]
     }
+  }
+
+  // set the default supplement
+  if supplement == auto {
+    supplement = blocktitle
   }
 
   // check consistency of `counter` and `prefix`
@@ -32,75 +48,191 @@
 
   // return the environment for the user
   if counter != none {
-    return (title: none, numbering: numbering, prefix: prefix, titlix: titlix, suffix: suffix, bodyfmt: bodyfmt, number: auto, ..local_block_args, body) => {
-      figure(kind: "great-theorem-counted", supplement: blocktitle, outlined: false)[#block(width: 100%, ..global_block_args.named(), ..local_block_args.named())[
-        #if number == auto [
+    return (
+      title: none,
+      numbering: numbering,
+      prefix: prefix,
+      titlix: titlix,
+      suffix: suffix,
+      bodyfmt: bodyfmt,
+      number: auto,
+      ..local-block-args,
+      body,
+    ) => figure(
+      kind: "great-theorem-counted",
+      supplement: supplement,
+      outlined: false,
+      // caption: context (counter.display)(numbering), // one could misuse the field to put the counter display value here
+      {
+        /// takes the original location of the theorem block and returns the correct number
+        let number-func(loc) = number
+        if number == auto {
           // step and counter
-          #(counter.step)()
-          #{number = context (counter.display)(numbering)}
-          // store counter so reference can get counter value
-          // NOTE: alternatively could store result of counter.get(), but then it would take one more layout iteration
-          #metadata((loc) => { std.numbering(numbering, ..((counter.at)(loc))) })
-          #label("great-theorems:numberfunc")
-        ] else [
-          // store manual number for reference
-          #metadata((loc) => number)
-          #label("great-theorems:numberfunc")
+          (counter.step)()
+          number = context (counter.display)(numbering)
+          number-func = loc => std.numbering(numbering, ..(counter.at)(loc))
+        }
+        
+        let fmt-header(loc) = prefix(number-func(loc)) + if title != none { titlix(title) }
+        let res(loc) = block(
+          width: 100%,
+          ..global-block-args.named(),
+          ..local-block-args.named(),
+          {
+            [ #metadata(number-func) <great-theorems:numberfunc> ]
+            // show content,
+            fmt-header(loc)
+            bodyfmt(body)
+            suffix
+          }
+        )
+        
+        context res(here())
+        // store all information in a outside referencable object, i.e. for flashcards generation
+        if introspectable [
+          #metadata((
+            thmkind: blocktitle,
+            number-fct: number-func,
+            body: body,
+            prefix: prefix,
+            suffix: suffix,
+            fmt-header: fmt-header,
+            fmt-body: bodyfmt(body),
+            fmt-all: res,
+          ))
+          #label("great-theorems::" + blocktitle)
         ]
-        // show content
-        #prefix(number)
-        #if title != none [#titlix(title)]
-        #bodyfmt(body)
-        #suffix
-      ]]
-    }
+      }
+    )
   } else {
-    return (title: none, numbering: numbering, prefix: prefix, titlix: titlix, suffix: suffix, bodyfmt: bodyfmt, ..local_block_args, body) => {
-      figure(kind: "great-theorem-uncounted", supplement: blocktitle, outlined: false)[#block(width: 100%, ..global_block_args.named(), ..local_block_args.named())[
-        // show content
-        #prefix
-        #if title != none [#titlix(title)]
-        #bodyfmt(body)
-        #suffix
-      ]]
-    }
+    return (
+      title: none,
+      numbering: numbering,
+      prefix: prefix,
+      titlix: titlix,
+      suffix: suffix,
+      bodyfmt: bodyfmt,
+      ..local-block-args,
+      body,
+    ) => figure(
+      kind: "great-theorem-uncounted",
+      supplement: supplement,
+      outlined: false,
+      {
+        let fmt-header = prefix + if title != none { titlix(title) }
+        let res = block(
+          width: 100%,
+          ..global-block-args.named(),
+          ..local-block-args.named(),
+          {
+            // show content
+            fmt-header
+            bodyfmt(body)
+            suffix
+          },
+        )
+
+        res
+        // store all information in a outside referencable object, i.e. for flashcards generation
+        if introspectable [
+          #metadata((
+            thmkind: blocktitle,
+            body: body,
+            prefix: prefix,
+            suffix: suffix,
+            fmt-header: fmt-header,
+            fmt-body: bodyfmt(body),
+            fmt-all: res,
+          ))
+          #label("great-theorems::" + blocktitle)
+        ]
+      }
+    )
   }
 }
 
-#let proofblock(blocktitle: "Proof", prefix: text(style: "oblique", [Proof.]), prefix_with_of: of => text(style: "oblique", [Proof of #of.]), suffix: [#h(1fr) $square$], bodyfmt: body => body, ..global_block_args) = {
+#let proofblock(
+  blocktitle: "Proof",
+  prefix: text(style: "oblique", [Proof.]),
+  prefix-with-of: of => text(style: "oblique", [Proof of #of.]),
+  suffix: [#h(1fr) $square$],
+  bodyfmt: body => body,
+  introspectable: false,
+  ..global-block-args,
+) = {
   // return the environment for the user
-  return (of: none, prefix: prefix, prefix_with_of: prefix_with_of, suffix: suffix, bodyfmt: bodyfmt, ..local_block_args, body) => {
+  return (
+    of: none,
+    prefix: prefix,
+    prefix-with-of: prefix-with-of,
+    suffix: suffix,
+    bodyfmt: bodyfmt,
+    ..local-block-args,
+    body,
+  ) => {
     if type(of) == label {
       of = ref(of)
     }
-    
-    figure(kind: "great-theorem-uncounted", supplement: blocktitle, outlined: false)[#block(width: 100%, ..global_block_args.named(), ..local_block_args.named())[
-      // show content
-      #if of != none [#prefix_with_of(of)] else [#prefix]
-      #bodyfmt(body)
-      #suffix
-    ]]
+
+    figure(
+      kind: "great-theorem-uncounted",
+      supplement: blocktitle,
+      outlined: false,
+      {
+        let fmt-header = if of != none { prefix-with-of(of) } else { prefix }
+        let res = block(
+          width: 100%,
+          ..global-block-args.named(),
+          ..local-block-args.named(),
+          {
+            // show content
+            fmt-header
+            bodyfmt(body)
+            suffix
+          },
+        )
+
+        res
+        // store all information in a outside referencable object, i.e. for flashcards generation
+        if introspectable [
+          #metadata((
+            proofkind: blocktitle,
+            body: body,
+            prefix: prefix,
+            prefix-with-of: prefix-with-of,
+            of: of,
+            suffix: suffix,
+            fmt-header: fmt-header,
+            fmt-body: bodyfmt(body),
+            fmt-all: res,
+          ))
+          #label("great-theorems::" + blocktitle)
+        ]
+      }
+    )
   }
 }
 
 #let great-theorems-init(body) = {
-  show figure.where(kind: "great-theorem-counted"): set align(start)
-  show figure.where(kind: "great-theorem-counted"): set block(breakable: true)
-  show figure.where(kind: "great-theorem-counted"): fig => fig.body
-
-  show figure.where(kind: "great-theorem-uncounted"): set align(start)
-  show figure.where(kind: "great-theorem-uncounted"): set block(breakable: true)
-  show figure.where(kind: "great-theorem-uncounted"): fig => fig.body
+  show figure.where(kind: "great-theorem-counted").or(figure.where(kind: "great-theorem-uncounted")): fig => {
+    set align(start)
+    set block(breakable: true)
+    fig.body
+  }
 
   show ref: it => {
-    if it.element != none and it.element.func() == figure and it.element.kind == "great-theorem-counted" {
-      let supplement = if it.citation.supplement != none { it.citation.supplement } else { it.element.supplement }
-      let data = query(selector(label("great-theorems:numberfunc")).after(it.target)).first()
-      let numberfunc = data.value
-      link(it.target, [#supplement #numberfunc(data.location())])
-    } else if it.element != none and it.element.func() == figure and it.element.kind == "great-theorem-uncounted" {
-      let supplement = if it.citation.supplement != none { it.citation.supplement } else { it.element.supplement }
-      link(it.target, [#supplement])
+    if it.element != none and it.element.func() == figure {
+      if it.element.kind == "great-theorem-counted" {
+        let supplement = if it.citation.supplement != none { it.citation.supplement } else { it.element.supplement }
+        let data = query(selector(<great-theorems:numberfunc>).after(it.target)).first()
+        let numberfunc = data.value
+        link(it.target, [#supplement #numberfunc(data.location())])
+      } else if it.element.kind == "great-theorem-uncounted" {
+        let supplement = if it.citation.supplement != none { it.citation.supplement } else { it.element.supplement }
+        link(it.target, [#supplement])
+      } else {
+        it
+      }
     } else {
       it
     }

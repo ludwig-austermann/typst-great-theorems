@@ -1,4 +1,6 @@
-#import "@preview/great-theorems:0.1.1": *
+
+// #import "@preview/great-theorems:0.1.1": *
+#import "../lib.typ": *
 #import "@preview/rich-counters:0.2.1": *
 
 #set heading(numbering: "1.1")
@@ -8,17 +10,20 @@
 
 #let mathcounter = rich-counter(
   identifier: "mathblocks",
-  inherited_levels: 1
+  inherited_levels: 1,
 )
 
 #let theorem = mathblock(
   blocktitle: "Theorem",
+  supplement: "Thm.",
   counter: mathcounter,
+  introspectable: true,
 )
 
 #let lemma = mathblock(
   blocktitle: "Lemma",
   counter: mathcounter,
+  introspectable: true,
 )
 
 #let remark = mathblock(
@@ -29,13 +34,15 @@
   radius: 5pt,
 )
 
-#let proof = proofblock()
+#let proof = proofblock(
+  introspectable: true
+)
 
 = Some Heading
 
 #theorem[
   This is some theorem.
-]
+] <firstthm>
 
 #theorem(number: "A")[
   This is a theorem with a custom number.
@@ -52,7 +59,7 @@
 = Another Heading
 
 #theorem(title: "some title")[
-  This is a theorem with a title.
+  This is a theorem with a title. It is similar to @firstthm
 ] <thm2>
 
 #proof(of: <thm2>)[

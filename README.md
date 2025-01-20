@@ -25,7 +25,7 @@ In the following example we use [rich-counters](https://typst.app/universe/packa
 You can also use [headcount](https://typst.app/universe/package/headcount/).
 
 ```typ
-#import "@preview/great-theorems:0.1.1": *
+#import "@preview/great-theorems:0.2.0": *
 #import "@preview/rich-counters:0.2.1": *
 
 #set heading(numbering: "1.1")
@@ -40,12 +40,13 @@ You can also use [headcount](https://typst.app/universe/package/headcount/).
 
 #let theorem = mathblock(
   blocktitle: "Theorem",
-  counter: mathcounter,
+  supplement: "Thm.",
+  counter: mathcounter
 )
 
 #let lemma = mathblock(
   blocktitle: "Lemma",
-  counter: mathcounter,
+  counter: mathcounter
 )
 
 #let remark = mathblock(
@@ -53,7 +54,7 @@ You can also use [headcount](https://typst.app/universe/package/headcount/).
   prefix: [_Remark._],
   inset: 5pt,
   fill: lime,
-  radius: 5pt,
+  radius: 5pt
 )
 
 #let proof = proofblock()
@@ -186,7 +187,7 @@ It works exactly the same as `mathblock`, the only differences being:
 
 - it has different default values for `blocktitle`, `prefix`, and `suffix`
 - it has no `counter` and `numbering` argument
-- the `titlix` argument is replaced with a `prefix_with_of` argument (also consisting of a function), which will be used as a prefix when the constructed environment is used with `of` parameter
+- the `titlix` argument is replaced with a `prefix-with-of` argument (also consisting of a function), which will be used as a prefix when the constructed environment is used with `of` parameter
 
 The constructed environment will have the following changes compared to an environment constructed with `mathblock`
 
@@ -222,14 +223,20 @@ The constructed environment will have the following changes compared to an envir
 
   You can essentially define your own defaults like this:
   ```typ
-  #let my_mathblock = mathblock.with(fill: yellow, radius: 5pt, inset: 5pt)
+  #let my-mathblock = mathblock.with(fill: yellow, radius: 5pt, inset: 5pt)
   
-  #let theorem = my_mathblock(...)
-  #let lemma = my_mathblock(...)
-  #let remark = my_mathblock(...)
+  #let theorem = my-mathblock(...)
+  #let lemma = my-mathblock(...)
+  #let remark = my-mathblock(...)
   ...
   ```
 
 - _The documentation is too short or unclear... how do I do X?_
 
   Please just open an [issue on GitHub](https://github.com/jbirnick/typst-great-theorems/issues), and I will happily answer your question and extend the documentation!
+
+# Changes in this fork
+- add `supplement` option
+- introspection usage via `<great-theorems::{BLOCKTITLE}>` by using the `introspectable` option
+- variables with `_` transformed to `-` to conform typst style
+- restructured examples, added extensive example for flashcards
